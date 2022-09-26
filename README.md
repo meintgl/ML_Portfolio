@@ -19,4 +19,4 @@ You can read the [PDF document here](Regression.pdf) and look at the [markdown c
 
 For the second part, classification is done with a dataset containning customer satisifcation on airlines based on different factors. Different variables are explored to predict whether a customer is "satisfied" or "dissatisfied". Logistic regression and the Naive Bayes model is created to facilitate this.
 
-You can read the [PDF document here](Classification.pdf) and look at the [markdown code here](Classification.Rmd).
+You can read the [PDF document here](Classification.pdf) and look at the [markdown code here](https://github.com/meintgl/ML_Portfolio/blob/main/Linear%20Model%20Project/Classification.Rmd).
