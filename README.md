@@ -24,5 +24,5 @@ You can read the [PDF document here](https://github.com/meintgl/ML_Portfolio/blo
 **Datasets (Direct Download)**
 
 [Diamond Dataset](https://github.com/meintgl/ML_Portfolio/blob/main/Linear%20Model%20Project/diamonds.csv)
-[Airline Dataset](https://github.com/meintgl/ML_Portfolio/blob/main/Linear%20Model%20Project/Invistico_Airline.csv)
 
+[Airline Dataset](https://github.com/meintgl/ML_Portfolio/blob/main/Linear%20Model%20Project/Invistico_Airline.csv)
