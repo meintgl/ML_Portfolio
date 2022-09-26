@@ -1,0 +1,215 @@
+---
+title: "Regression"
+author: "Meinhard Capucao, Khang Thai"
+utput:
+  html_document:
+    df_print: paged
+  pdf_document: default
+output:
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+
+This data-set contains information about the price and various attributes of about 54,000 diamonds.
+
+[Here is a link to the dataset.](https://www.kaggle.com/datasets/shivam2503/diamonds)
+
+**Linear regression** is used for regression. This has its strengths and weaknesses describe below.
+
+**Linear regression** consists of predictor values (x) and target values (y), where the goal is to find the relationship between x and y and be able to predict future values from this relationship. Simple linear regression has only one predictor variable. Adding more predictors makes it multiple linear regression. This algorithm works with quantitative data. Linear regression strength lies in that it is useful when the relationship between predictor and target values indicate a linear relationship. Although many algorithms are better, when we know the data is linear linear regression excels. Linear regression has low variance as well. However, most data will not be linear, causing linear regression to be less favorable in most cases. Linear regression also tends to have high bias.
+
+### Data reading and Installing Packages
+
+First, install the diamond.csv data-set. Then, we look at the columns and their specific data types.
+
+```{r}
+install.packages("tidyverse",repos = "http://cran.us.r-project.org")
+library(tidyverse)
+diamonds <- read_csv("diamonds.csv")
+str(diamonds)
+```
+
+### Graphs and Plotting 
+
+Here, we plotted count as a function of carat to observe any relationships or trends. The abline function plots a general line through the graph. 
+
+```{r}
+plot(diamonds$price~diamonds$carat, xlab= "Carat", ylab= "Price")
+abline(lm(diamonds$price~diamonds$carat), col = "blue")
+```
+The graph of diamond price as a function of carat is split into colors and made easier to read, where any carat values above 2.0 are colored blue. Anything below that is colored colored red.
+
+### Divide into Train and Test Data
+
+We will go ahead and divide the test data into training and test data, with 80% being training and 20% being test.
+
+```{r}
+set.seed(1234)
+i <- sample(1:nrow(diamonds), nrow(diamonds)*0.8, replace = FALSE)
+train <- diamonds[i,]
+test <- diamonds[-i,]
+```
+
+### Creating Graphs
+
+```{r}
+par(mfrow=c(1,1))
+train$large <- factor(ifelse(train$carat>2,1,0))
+plot(train$carat, train$price, xlab = "Carat", ylab = "Price", pch=21, bg=c("red","blue")[unclass(train$large)])
+```
+Then, a density plot is created for price and density. This reveals how diamond carats concentrate around values from 0.0 to 2.0. For the price, a similar trend is seen as well where they concentrate towards the left side.
+
+```{r}
+par(mfrow=c(1,2))
+d <-density(train$carat, na.rm = TRUE)
+plot(d, main = "Density Plot for Carat", xlab = "Carat")
+polygon(d, col="wheat", border="slategrey")
+
+d <-density(train$price, na.rm = TRUE)
+plot(d, main = "Density Plot for Price", xlab = "Price")
+polygon(d, col="cyan", border="slategrey")
+```
+
+### Data Exploration
+
+Various R functions are used to further explore and understand the diamond data set. The initial linear regression model will predict price through carats, so the summary and range of both are inputted. Although the carat values range from 0.2 to 4.13, through the data from 3Q about 75% ofm carat values are below 1.0.
+
+```{r}
+summary(train$carat)
+summary(train$price)
+range(train$carat)
+range(train$price)
+```
+We can see that carat and price are highly correlated through the cor function, which helps show the good fit for the upcoming linear regression model.
+
+```{r}
+cor(train$price, train$carat, use = "complete.obs")
+```
+
+Lastly, to fully understand where the carats lies and how much is in each category, the sum function is used for five different carat breakpoints.There are only three diamonds above four carats, so how much is the price for the biggest carat value?
+
+The diamond with the greatest price does not match any of the diamonds with the greatest value, so now to find where it is.
+
+```{r}
+sum(train$carat<=1)
+sum(train$carat<=2 & train$carat>1)
+sum(train$carat<=3 & train$carat>2)
+sum(train$carat<=4 & train$carat>3)
+sum(train$carat>4)
+
+
+A <- subset(train, train$carat >= 4)
+print(A)
+
+B <- subset(train, train$price == max(train$price))
+print(B)
+
+```
+
+
+### Building a Linear Regression
+
+```{r}
+lm1 <- lm(price~carat, data=train)
+summary(lm1)
+```
+
+Based on our summary, every one-unit increase in carat would result in a $7783 increase in price, with an error of about \$15. The R^squared is 0.8503, which indicates a high goodness of fit, since the closer it is to 1 the better. This provides evidence we have a good model. Our F statistic is high and way greater than one, and considering that our p-value is low, our model has good confidence. 
+
+### Residual Analysis
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm1)
+```
+**Residuals vs Fitted**
+(1) Because there is a relatively equally spread residual around a horizontal line, our graph indicates that it there is a linear relationship.
+
+**Normal Q-Q**
+(2) This plot shows a normal distribution since most of the residuals follow a straight line aside from a few outliers.
+
+**Scale-Location**
+(3) The residuals appear to be randomly spread along the range of predictors. This assumes that there is equal variance.
+
+**Residuals vs Leverage**
+(4) For the most part, our residual vs leverage graph indicates that there are a few influential cases. For example, case 1975 indicates that the price of the diamond was way less than it should be for its high carat value.
+
+
+
+### Building our Second Linear Regression Function
+
+We build our second linear regression model with two new predictors, depth, and table. Essentially, this is multi-linear regression.
+
+```{r}
+lm2 <- lm(price~carat+depth+table, data=train)
+summary(lm2)
+```
+### Residuals
+
+We can see that for multi-linear regression, all four residuals are similar to last ones. They show that for the most part, the data fits the model well.
+
+```{r}
+par(mfrow=c(2,2))
+plot(lm2)
+```
+### Boxplot to Find Outliers
+
+We want to create a third model in hopes of achieving higher accuracy for our model. First, we wanted to **get rid of outliers** in general dictated by the $out function in R. We created a boxplot of our training data to see that the outliers are about 3. Then, we create a new vector for all the outliers to see the **minimum value** of the outliers, which is 2.01. We also see that there are **1507** outliers.
+
+```{r}
+boxplot(train$carat)
+outliers <- boxplot(train$carat, plot=FALSE)$out
+
+min(outliers)
+length(outliers)
+```
+
+
+### Trying to improve our New Linear Regression Model
+
+In our new linear regression model, we tried to improve it in two ways. First, we **added two new predictors** we thought were useful (**cut**, and **clarity**). Second, by **removing all outliers** through the subset() function, which was any carats above 2.01.
+
+
+```{r}
+newdata <- subset(train, carat <= 2.01)
+lm3 <- lm(price~carat+depth+table+cut+clarity, data=newdata)
+summary(lm3)
+plot(lm3)
+
+```
+
+
+
+### Analysis Between Models
+
+```{r}
+anova(lm1, lm2)
+```
+
+This shows that models 1 and 2 are pretty similar since they have very similar RSS and Res. Df.
+
+### Results
+
+Model one was a simple linear regression model that plotted the price of a diamond as a function of its carat. The R^2 was 0.8503, indicating that about 85% of the variance of price being studied is explained by the variance of carat. Model 2 was a multiple linear regression model that added depth and table as predictors for price. Comparing model one with model 2, the performance is slightly better since the R value was 0.8547, and the RSS was shown to be less. 
+
+We tried to improve the model by removing outliers that we thought affected the data through the subset functions, and introducing two more predictors that we thought would improve our model's prediction for price. Our third model had a 3% increase in accuracy, with the R^2 being 0.8842. The residual standard error also decreased by about 300, which indicates our regression model fits the dataset better.
+
+
+```{r}
+pred1 <- predict(lm3, newdata=test)
+cor1 <- cor(pred1, test$price)
+mse1 <- mean((pred1-test$price)^2)
+rmse1 <- sqrt(mse1)
+
+print(paste('correlation: ', cor1))
+print(paste('mse: ', mse1))
+print(paste('rmse: ', rmse1))
+```
+
+### Conclusion
+
+We can conclude that there is a strong correlation between the price of a diamond and a combination of its carat, depth, table, clarity, and cut. Since there's a high positive correlation between the variables we can say that they are good predictors of the price.
+
+Each data set is on average, far from the fitted line. Although the variables show good correlation as a predictor for price, there is a lot of variance that may stem from other factors.
