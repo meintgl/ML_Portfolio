@@ -22,6 +22,7 @@ For the second part, classification is done with a dataset containning customer 
 You can read the [PDF document here](https://github.com/meintgl/ML_Portfolio/blob/main/Linear%20Model%20Project/Classification.pdf) and look at the [markdown code here](https://github.com/meintgl/ML_Portfolio/blob/main/Linear%20Model%20Project/Classification.Rmd).
 
 **Datasets (Direct Download)**
+
 [Diamond Dataset](https://github.com/meintgl/ML_Portfolio/blob/main/Linear%20Model%20Project/diamonds.csv)
 [Airline Dataset](https://github.com/meintgl/ML_Portfolio/blob/main/Linear%20Model%20Project/Invistico_Airline.csv)
 
