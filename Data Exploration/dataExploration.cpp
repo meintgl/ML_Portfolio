@@ -9,7 +9,7 @@
 #include <iostream>
 #include <iostream>     // std::cout
 #include <fstream>      // std::ifstream
-#include <vector>       // std::vector
+#include <vector>       // std::vectorr
 #include <bits/stdc++.h> 
 #include <math.h>       //for math functions such as pow, sqrt, etc.
 using namespace std;
