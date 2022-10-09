@@ -44,3 +44,23 @@ For analysis on both models and our data, feel free to read the [PDF document he
 **Datasets (Direct Download)**
 
 [Titanic Dataset](https://github.com/meintgl/ML_Portfolio/blob/main/ML%20Algorithms%20from%20Scratch/titanic_project.csv)
+
+## Searching for Similarity
+
+This project implements four notebooks to showcase similarity models, clustering methods, and dimensionality reeduction techniques.
+
+Notebook 1 deals with regression, specifically: linear regression, kNN regression and Decision tree regression.
+
+You can look at the [code here](https://github.com/meintgl/ML_Portfolio/blob/main/Searching%20by%20Similarity/Regression.Rmd) and read the [PDF Document here](https://github.com/meintgl/ML_Portfolio/blob/main/Searching%20by%20Similarity/Regression.pdf).
+
+Notebook 2 deals with classification, Logistic Regression, kNN, and Decision Trees.
+
+You can look at the [code here](https://github.com/meintgl/ML_Portfolio/blob/main/Searching%20by%20Similarity/Classification.Rmd) and read the [PDF Document here](https://github.com/meintgl/ML_Portfolio/blob/main/Searching%20by%20Similarity/pfc4_Classification.pdf).
+
+Notebook 3 deals with kNN clustering, hierarchical clustering, and model based clustering.
+
+You can look at the [code here](https://github.com/meintgl/ML_Portfolio/blob/main/Searching%20by%20Similarity/Clustering.Rmd) and read the [PDF Document here](https://github.com/meintgl/ML_Portfolio/blob/main/Searching%20by%20Similarity/Clustering.pdf).
+
+Notebook 4 deals with dimensionality reduction
+
+You can look at the [code here](https://github.com/meintgl/ML_Portfolio/blob/main/Searching%20by%20Similarity/Dimensionality_Reduction.Rmd) and read the [PDF Document here](https://github.com/meintgl/ML_Portfolio/blob/main/Searching%20by%20Similarity/Dimensionality_Reduction.pdf).
