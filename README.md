@@ -26,3 +26,21 @@ You can read the [PDF document here](https://github.com/meintgl/ML_Portfolio/blo
 [Diamond Dataset](https://github.com/meintgl/ML_Portfolio/blob/main/Linear%20Model%20Project/diamonds.csv)
 
 [Airline Dataset](https://github.com/meintgl/ML_Portfolio/blob/main/Linear%20Model%20Project/Invistico_Airline.csv)
+
+
+## ML Algorithms from Scratch
+This project implements the equations and math required to calculate logistic regression and naive bayes model in C++. The titanic dataset is used for data.
+
+For logistic regression, passenger survival is predicted with sex as a sole factor. The accuracy of the model turned out to be arond 78.1%.
+
+You can look at the [code here](https://github.com/meintgl/ML_Portfolio/blob/main/ML%20Algorithms%20from%20Scratch/logisticRegression.cpp).
+
+For naive bayes, passenger survival is predicted with sex, age, and passenger class as factors. The accuracy of the model turned out to be arond 78.5%, slightly higher than our logistic regression mode.
+
+You can look at the [code here](https://github.com/meintgl/ML_Portfolio/blob/main/ML%20Algorithms%20from%20Scratch/naiveBayes.cpp).
+
+For analysis on both models and our data, feel free to read the [PDF document here](https://github.com/meintgl/ML_Portfolio/blob/main/ML%20Algorithms%20from%20Scratch/ML%20Algorithms%20from%20Scratch.pdf).
+
+**Datasets (Direct Download)**
+
+[Titanic Dataset](https://github.com/meintgl/ML_Portfolio/blob/main/ML%20Algorithms%20from%20Scratch/titanic_project.csv)
