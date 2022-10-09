@@ -1,0 +1,154 @@
+---
+title: "Classification on CS:GO matches"
+author: "Andrew Gerungan"
+output: 
+  html_notebook:
+      df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+
+First we load the dataset (a set of CS:GO matches that includes map bans and their corresponding best_of)
+
+```{r}
+
+df <- read.csv("picks.csv")
+str(df)
+```
+
+We then isolate the columns that we are concerned about, those being best_of, 2 maps banned out by team 1 and 2 maps banned out by team 2. We also clean up best_of so that it's easier to classify
+
+```{r} 
+df <- df[,c(7,9,10,12,13)] #grab best_of, t1_removed_1, t1_removed_2, t2_removed_1, t2_removed_2, left_over
+
+
+df$best_of <- factor(df$best_of)
+df$t1_removed_1 <- factor(df$t1_removed_1)
+df$t1_removed_2 <- factor(df$t1_removed_2)
+df$t2_removed_1 <- factor(df$t2_removed_1)
+df$t2_removed_2 <- factor(df$t2_removed_2)
+
+levels(df$best_of)[levels(df$best_of)=="1(Online)"] <- "1"
+levels(df$best_of)[levels(df$best_of)=="2(Online)"] <- "2"
+levels(df$best_of)[levels(df$best_of)=="3(LAN)"] <- "3"
+levels(df$best_of)[levels(df$best_of)=="3(Online)"] <- "3"
+levels(df$best_of)[levels(df$best_of)=="3."] <- "3"
+levels(df$best_of)[levels(df$best_of)=="of"] <- "3"
+
+summary(df$t2_removed_2)
+
+#df$left_over <- factor(df$left_over)
+
+sapply(df, function(x) sum(is.na(x)==TRUE))
+
+```
+
+Now we split our data into train/test (80/20)
+
+```{r}
+set.seed(1234)
+i <- sample(1:nrow(df), .8*nrow(df), replace=FALSE)
+train <- df[i,]
+test <- df[-i,]
+```
+
+### Data Exploration
+
+We run a summary on the dataset and each of its columns before checking the head/tail of best_of; I already have an idea of a relationship I want to check - some maps don't see a lot of play outside of bo5s since certain maps are banned a lot. I want to see if I can determine what type of series the match is based on the maps banned - this should work for some of the more fringe maps (hopefully). I also checked the dim of the dataset and the head, and tail of the two columns
+
+```{r}
+summary(train)
+dim(train)
+
+summary(train$best_of)
+summary(train$t1_removed_1)
+summary(train$t1_removed_2)
+summary(train$t2_removed_1)
+summary(train$t2_removed_2)
+#summary(train$left_over)
+
+```
+
+```{r}
+head(train$best_of)
+tail(train$best_of)
+```
+
+We then plot t1's first removed map vs best_of to see if you can immediately guess the best_of series based off of the first removed map
+
+```{r}
+
+plot(x=train$t1_removed_1, y=train$best_of)
+pairs(train)
+
+```
+
+### Logistic Regression
+
+We're going to go ahead and run logistic regression on the type of series
+
+```{r}
+glm1 <- glm(best_of~., data=train, family="binomial")
+summary(glm1)
+plot(glm1)
+```
+
+...we got some interesting looking graphs and residuals, probably pointing towards logistic regression not being too hot for this idea
+
+```{r}
+probs <- predict(glm1, newdata=test, type="response")
+pred <- ifelse(probs>0.5, 1, 0)
+acc <- mean(pred==test$best_of)
+print(paste("accuracy=", acc))
+table(pred, test$best_of)
+```
+
+Wow the accuracy is bad but at least the levels are accurate.
+
+Let's move onto kNN predicting with classification - maybe that'll be more accurate. We will need to change our other columns into numerics for this to work though
+
+```{r}
+library(class)
+
+#need to transfer to numeric
+df$t1_removed_1 <- as.numeric(df$t1_removed_1)
+df$t1_removed_2 <- as.numeric(df$t1_removed_2)
+df$t2_removed_1 <- as.numeric(df$t2_removed_1)
+df$t2_removed_2 <- as.numeric(df$t2_removed_2)
+
+#re-randomize?
+set.seed(1234)
+i <- sample(1:nrow(df), .8*nrow(df), replace=FALSE)
+train <- df[i,]
+test <- df[-i,]
+
+kNN_pred <- knn(train=train[2:5], test=test[2:5], cl=train$best_of, k=50)
+```
+
+
+
+```{r}
+results <- kNN_pred == test$best_of
+acc <- length(which(results==TRUE)) / length(results)
+table(results, kNN_pred)
+acc
+```
+
+The accuracy is much better - still not near a threshold that I'd be confident with but much better than the logistic regression.
+
+Finally, let's try using decision trees
+
+```{r}
+library(tree)
+tree1 <- tree(best_of~., data=train)
+pred <- predict(tree1, newdata=test, type="class")
+table(pred, test$best_of)
+mean(pred==test$best_of)
+
+```
+
+A similar accuracy to kNN, meaning it's much better than the logistic regression.
+
+### Analysis
+
+The difference between the results of logistic regression and both kNN and Decision trees is most likely due to the nature of the data - the presented idea of finding the best_of series based off of banned maps is inherently going to be harder to draw a definitive conclusion from basic logistic regression. Decision trees and kNN classification have a higher chance of having higher accuracy simply due to the better form of generalization it uses - logistic regression predicted alot of best of 3's compared to kNN and decision trees.

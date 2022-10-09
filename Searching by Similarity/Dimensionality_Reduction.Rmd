@@ -1,0 +1,85 @@
+---
+title: "Dimensionality Reduction"
+author: "Ethan Huynh, Meinhard Capucao, Ryan Gagliardi, Andrew Gerungan"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+editor_options:
+  chunk_output_type: inline
+---
+
+### Run PCA on the unpopular songs data
+
+```{r}
+library(caret)
+df <- read.csv('unpopular_songs.csv')
+set.seed(1526)
+i <- sample(1:nrow(df), nrow(df)*0.8, replace=FALSE)
+train <- df[i,]
+test <- df[-i,]
+pca_out <- preProcess(train[, c(1,2,4,6:12)], method=c("center", "scale", "pca"))
+pca_out
+```
+### PCA plot
+
+```{r}
+train_pc <- predict(pca_out, train[, c(1,2,4,6:12)])
+test_pc <- predict(pca_out, test[, c(1,2,4,6:12)])
+plot(test_pc$PC8, test_pc$PC9, pch=c(23,21,22)[unclass(test_pc$popularity)], bg=c("red","green","blue")[unclass(test$popularity)])
+```
+### Scale the data
+
+Now let's see if our nine principal components can predict popularity
+```{r}
+train_scaled <- train_pc[, 1:9]  # don't scale popularity
+means <- sapply(train_scaled, mean)
+stdvs <- sapply(train_scaled, sd)
+train_scaled <- scale(train_scaled, center=means, scale=stdvs)
+test_scaled <- scale(test_pc[, 1:9], center=means, scale=stdvs)
+```
+
+### PCA data in knn
+
+```{r}
+library(class)
+set.seed(1526)
+# fit the model
+fit <- knnreg(train_scaled, train$popularity, k=50)
+# evaluate
+pred <- predict(fit, test_scaled)
+cor_knn <- cor(pred, test$popularity)
+mse_knn <- mean((pred - test$popularity)^2)
+print(paste("cor=", cor_knn))
+print(paste("mse=", mse_knn))
+print(paste("rmse=", sqrt(mse_knn)))
+```
+
+The correlation is higher than if we used all 10 predictors (0.265). Perhaps the 10th predictor somehow reduced the accuracy.
+
+```{r}
+train_df <- data.frame(train_pc$PC1, train_pc$PC2, train_pc$PC3, train_pc$PC4, train_pc$PC5, train_pc$PC6, train_pc$PC7, train_pc$PC8, train_pc$PC9, train$popularity)
+test_df <- data.frame(test_pc$PC1, test_pc$PC2, test_pc$PC3, test_pc$PC4, test_pc$PC5, test_pc$PC6, test_pc$PC7, test_pc$PC8, test_pc$PC9, test$popularity)
+```
+
+### LDA
+
+```{r}
+library(MASS)
+lda1 <- lda(popularity~danceability+energy+loudness+speechiness+acousticness+instrumentalness+liveness+valence+tempo+duration_ms, data=train)
+lda1$means
+```
+
+### predict on test
+
+```{r}
+lda_pred <- predict(lda1, newdata=test)
+lda_pred$class
+mean(lda_pred$class==test$popularity)
+```
+
+### plot
+
+```{r}
+plot(lda_pred$x[,8], lda_pred$x[,9], pch=c(23,21,22)[unclass(lda_pred$class)], bg=c("red","green","blue")[unclass(test_pc$popularity)])
+```

@@ -1,0 +1,275 @@
+---
+title: "Clustering"
+author: "Meinhard Capucao, Ethan Huynh, Andrew Gerungan, Ryan Gagliardi"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+editor_options:
+  chunk_output_type: inline
+---
+
+This data-set contains information and data for more than 10,000 unpopular songs in Spotify.
+
+[Here is a link to the dataset.](https://www.kaggle.com/datasets/estienneggx/spotify-unpopular-songs)
+
+**Clustering** finds groups within data that share common features. Here we aim to cluster different songs into groups based on 11 categories. We can view track identifiers through the track name, and artist. We will use three different clustering methods: K-means, Hierarchical, and model-based clustering.
+
+
+### Install Required Packages
+
+First, we want to install tidyverse in order to read in the csv file. We also want to install all necessary packages.
+
+```{r}
+install.packages("tidyverse",repos = "http://cran.us.r-project.org")
+install.packages("NbClust",repos = "http://cran.us.r-project.org")  
+install.packages("cluster",repos = "http://cran.us.r-project.org")  
+install.packages("factoextra",repos = "http://cran.us.r-project.org")  
+install.packages("flexclust",repos = "http://cran.us.r-project.org")  
+install.packages("dendextend",repos = "http://cran.us.r-project.org")  
+install.packages("mclust",repos = "http://cran.us.r-project.org")  
+library(NbClust)
+library(tidyverse)
+library(cluster)
+library(factoextra)
+library(flexclust)
+library(dendextend)
+library(mclust)
+unpopular_songs <- read_csv("unpopular_songs.csv")
+```
+
+
+### K-means
+
+K-means clustering identifies centroids (k) and groups observations based on their distance to the closest centroid. kNN looks for nearby observations given test observations, and is supervised.
+
+Let's apply k-means to this data-set. We will use the first 14 metrics, and exclude the track name, track artist, and track id.
+
+We will also have to scale the data, but we also need to convert explicitness into a numeric value by scaling true or false. The scale function does this automatically. We create test graph for a sample with 30
+
+```{r}
+head(unpopular_songs)
+df = subset(unpopular_songs, select = -c(track_name, track_artist, track_id)) 
+df[,1:14] <- scale(df[,1:14])
+subset_df <- df[1:1000,]
+head(df)
+```
+
+
+We will write a function to plot the within-group sums of squares vs. the number of clusters. We will try plotting to 30 clusters. First, we will omit all rows with missing values from the data frame, then we plot.
+
+
+```{r}
+df <- na.omit(df)
+```
+
+```{r}
+wsplot <- function(data, nc=30, seed=1234){
+  wss <- (nrow(data)-1)*sum(apply(data,2,var))
+  for (i in 2:nc){
+    set.seed(seed)
+    wss[i] <- sum(kmeans(data,centers=i)$withinss)
+  }
+  plot(1:nc, wss, type="b", xlab="Number of Clusters",
+       ylab="Within groups sum of squares")
+}
+wsplot(df)
+```
+
+There is an elbow around 2 or 3 clusters, so we should use that.
+
+There is also a silhouette function built in from the library factoextra. This measures clustering quality and how well an object will lie within a cluster. The optimal number of clusters maximizes the average silhouette over the range of clusters.
+
+```{r}
+fviz_nbclust(df, kmeans, method = "silhouette")
+```
+
+
+Next, we are going to use NbClust() to help determine the best number of clusters. Note that with more than 10k datasets, it will take a while to run, so we used a subset of the first 1000 songs.
+
+
+```{r}
+set.seed(1234)
+nc <- NbClust(subset_df, min.nc=2, max.nc=30, method="kmeans")
+t <- table(nc$Best.n[1,])
+barplot(t, xlab="Number of Clusters", ylab = "Criteria")
+```
+
+### K-means
+
+We fit the model using kmeans(), and set a seed to get reproducible results.
+
+
+```{r}
+set.seed(1234)
+fit.km <- kmeans(df, 3, nstart=25)
+fit.km$size
+
+```
+
+We can see that cluster 1 has 2490 songs, cluster 2 has 3074 songs, and cluster 3 has 5313 songs. We list the centroids found from fit.km$centers and display them.
+
+Next, we will print the kmeans clustering to have a summary of the data. We can see the cluster mena values per cluster for all of the metrics.
+
+```{r}
+print(fit.km)
+```
+
+The withins-cluster sum of squares indicates variance. Considering the size of our data set, the within cluster sum of squares is reasonable.
+
+We will use the aggregate() function along with cluster membership to get variables means for the clustered data in terms of our original data units.
+
+
+```{r}
+aggregate(unpopular_songs[-1], by=list(cluster=fit.km$cluster), mean)
+```
+
+We can see that **Cluster 1** has low energy, is quiet, high acousticness, very high instrumentalness, low valence, lowest tempo, shortest duration, and is clean. Most importantly, it's the least popular average of the least popular songs.
+
+**Cluster 2** has medium energy, is loud, high speechiness, low instrumenalness, medium duration, high valence and tempo, and most importantly, contains a lot of explicit songs. The low speechiness indicates that a lot of these songs are probably hip-hop. This has the highest popularity out of the three clusters.
+
+**Cluster 3** is similar to cluster 2, but non-explciit, has almost no instrumentalness, and has a longer duration.
+
+
+### Model Analysis
+
+
+We will print tables for the popularity and explicitness, since there are clear clustering for these metrics.
+
+
+```{r}
+ct.km <-table(unpopular_songs$popularity, fit.km$cluster)
+ct.km
+```
+
+We can see that cluster 3 has the highest amount of relative popularity.  Cluster 2 has slightly less, and cluster 1 contains the least amount of songs sorted on relative populairty.
+
+
+```{r}
+ct.km <-table(unpopular_songs$explicit, fit.km$cluster)
+ct.km
+```
+
+
+We can see that cluster 2 has a lot of the explicit songs, while cluster 3 has most of the non-explicit songs. 
+
+
+### Graph Analysis
+
+We will use fviz_cluster from the factoextra library. Principal component analysis is used since there are more than two variables, which allows us to represent the clusters in 2 dimensions.
+
+
+```{r}
+fviz_cluster(fit.km, data = df)
+```
+
+
+### Hierarchical Means
+
+Hierarchical clustering is very different, where we don't have to specify how many clusters we need. A dendogram is created at the end for the clustering. This type of clustering is a greedy algorithm, and won't do well with a lot of data. Therefore, we need to **subset** the data in order to perform this algorithm.
+
+
+### Data Shuffling and Selection
+
+
+First, lets shuffle the dataframe for random data and choose the first 50 songs from the shuffled dataframe to perform hierarchical cate We set a seed to keep the same shuffled songs. The final dataframe with scaled values and 50 random songs will be in df2.
+
+
+```{r}
+set.seed(369)
+shuffled_songs <- unpopular_songs[sample(nrow(unpopular_songs)),]
+first50_songs <- shuffled_songs[1:50,]
+head(first50_songs)
+
+df2 = subset(first50_songs, select = -c(track_artist, track_id))
+df2[,1:14] <- scale(df2[,1:14])
+head(df2)
+
+```
+
+Now, we plot after performing hierarchical clustering. We can see that around 4 or 5 can be good for cuts, but this includes all of the data. Having 19 cuts within popularity will be dificult, since there are fewer data points in the original unpopular_song dataframe towards the higher popularity values. Most of them center around 1-4. This is why it is more difficult to cluster with only one variable here, such as popularity, energy, or dance.
+
+```{r}
+d <- dist(df2)
+fit.average <- hclust(d, method="average")
+plot(fit.average, hang=-1, cex=.8, 
+     main="Hierarchical Clustering")
+
+```
+
+
+
+```{r}
+for (c in 2:19){
+  cluster_cut <- cutree(fit.average, c)
+  table_cut <- table(cluster_cut, first50_songs$popularity)
+  print(table_cut)
+  ri <- randIndex(table_cut)
+  print(paste("cut=", c, "Rand index = ", ri))
+}
+```
+The best corresopndence with type was 27 cuts. This is a lot of cuts, but makes sense when considering how many factors there are and how little data we use. When we use the factor of popularity only, then it can be tough to cluster. There is no set type within the songs, or defined genre. We try to find popularity, which is an integer from 0-18, ideally clustering when taking into consideration a lot of other factors.
+
+We can try to cut the dendogram with 3 clusters first, as 3 clusters was used in kNN means. We can also try 27, although it will be difficult to see what is best with the data we have.
+
+We should try this with 3 clusters, 5 clusters, 10 clusters, and 27 (just to experiment!).
+
+```{r}
+par(mfrow=c(2,2))
+cut_avg <- cutree(fit.average, k = 3)
+plot(fit.average)
+rect.hclust(fit.average , k = 3, border = 2:6)
+abline(h = 3, col = 'red')
+
+cut_avg2 <- cutree(fit.average, k = 5)
+plot(fit.average)
+rect.hclust(fit.average , k = 5, border = 2:6)
+abline(h = 5, col = 'red')
+
+cut_avg3 <- cutree(fit.average, k = 10)
+plot(fit.average)
+rect.hclust(fit.average , k = 10, border = 2:6)
+abline(h = 10, col = 'red')
+
+cut_avg4 <- cutree(fit.average, k = 27)
+plot(fit.average)
+rect.hclust(fit.average , k = 27, border = 2:6)
+abline(h = 27, col = 'red')
+```
+It seems like 27 clusters is the best in terms of randomness, but it is a lot... So for hierarchical clustering, we'll settle for 10.
+For easier visualization, we can use the dendextend library to visualize a tree with diffent colored branches.
+
+```{r}
+avg_dend_obj <- as.dendrogram(fit.average)
+avg_col_dend <- color_branches(avg_dend_obj, h = 3)
+plot(avg_col_dend)
+```
+
+
+### Model Based 
+
+Model based clustering applies maximum likelihood estimate and Bayes criteria to identify the best model and number of clusters.
+
+```{r}
+fit <- Mclust(df)
+summary(fit) 
+```
+
+
+The model based clustering predicted 3 clusters to be the best, and the model seems to be effective.
+
+### Visualization of Model Based Clustering
+
+We use the fviz_mclust function to create aesthetic visual plots for the results of model based clustering.
+
+```{r}
+library(factoextra)
+fviz_mclust(fit, "BIC", palette = "jco")
+fviz_mclust(fit, "classification", geom = "point", 
+            pointsize = 1.5, palette = "jco")
+```
+
+
+### Summary
+
+kMeans clustering gave us 3 clusters as the best one. It gave a good insight into each cluster, and data for each one. We saw above how each cluster was organized. Hierarchical clustering gave us a large  number of clusters as the best one. For this algorithm, we had to subset songs into 50 as hierarchical clustering is only effective for small datasets, as it divides everything into hierarchies to the smallest level. Model based clustering uses Bayes criteria and maximum likelihood. It was effective, as it clustered the data into 3 clusters and provided a nice graph.

@@ -1,0 +1,90 @@
+---
+title: "Regression"
+author: "Ryan Gagliardi, Andrew Gerungan, Ethan Huynh, Meinhard Capucao"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+songs <- read.csv('unpopular_songs.csv')
+
+set.seed(1234)
+i <- sample(1:nrow(songs), nrow(songs)*.80, replace=FALSE)
+train <- songs[i,]
+test <- songs[-i,]
+```
+
+Linear Regression
+The correlation here is fairly low and the mse/rmse are both fairly high. This is a result of the data set being poorly correlated and the predictors not having much of an effect on the target.
+```{r}
+lm1 <- lm(popularity~danceability+energy+key+loudness+speechiness+acousticness+liveness+valence+tempo+duration_ms, data=train)
+summary(lm1)
+plot(fitted(lm1), resid(lm1), main = "Linear Regression")
+abline(0,0)
+
+pred1 <- predict(lm1, newdata=test)
+cor1 <- cor(pred1, test$popularity)
+mse1 <- mean((pred1-test$popularity)^2)
+rmse1 <- sqrt(mse1)
+print(paste('correlation:', cor1))
+print(paste('mse:', mse1))
+print(paste('rmse:', rmse1))
+```
+
+kNN Regression
+We see that scaled is clearly the better option when it comes to kNN regression. It doubles our correlation and decreases our mse by about 1/16th.The best K was tested and found that cor increases as K increases to 50. Because the data is not very correlated, the correlation and mse are both fairly bad. A better correlated data set would have the correlation be closer to 1 and the mse/rmse be lower.
+```{r}
+train_scaled <- train[, c(1,2,4,6:12)] # Don't include columns that are classification
+means <- sapply(train_scaled, mean)
+stdvs <- sapply(train_scaled, sd)
+train_scaled <- scale(train_scaled, center=means, scale=stdvs)
+test_scaled <- scale(test[, c(1,2,4,6:12)], center=means, scale=stdvs)
+
+
+#Scaled Data
+fit <- knnreg(train_scaled, train$popularity, k=50)
+pred2 <- predict(fit, test_scaled)
+cor_knn2 <- cor(pred2, test$popularity)
+mse_knn2 <- mean((pred2 - test$popularity)^2)
+print(paste("scaled cor=", cor_knn2))
+print(paste("scaled mse=", mse_knn2))
+print(paste("scaled rmse=", sqrt(mse_knn2)))
+
+
+
+
+#Unscaled Data
+fit <- knnreg(train[,c(1,2,4,6:12)],train[,14],k=50)
+
+pred <- predict(fit, test[,c(1,2,4,6:12)])
+cor_knn1 <- cor(pred, test$popularity)
+mse_knn1 <- mean((pred - test$popularity)^2)
+print(paste("cor=", cor_knn1))
+print(paste("mse=", mse_knn1))
+
+```
+
+Decision Tree
+The decision tree here is lackluster. Due to the data not being very correlated to the predictor, there is not many variables that the algorithm can find that have an impact on the outcome substantial enough to actually use it in the tree. A better data set would have many different variables being used to show how each on individually affects the predictor.
+```{r}
+library(tree)
+library(MASS)
+tree1 <- tree(popularity~danceability+energy+loudness+speechiness+acousticness+instrumentalness+liveness+valence+tempo+duration_ms, data = train)
+summary(tree1)
+
+pred <- predict(tree1, newdata=test)
+print(paste('correlation:', cor(pred, test$popularity)))
+rmse_tree <- sqrt(mean((pred-test$popularity)^2))
+print(paste('rmse:', rmse_tree))
+plot(tree1, main = "Tree")
+text(tree1, cex=0.75, pretty=0)
+
+cv_tree <- cv.tree(tree1)
+plot(cv_tree$size, cv_tree$dev, type='b', main = "Cross validation")
+```
+
+All in all, the 3 different algorithms used here are all useful in their own way. Linear regression being the less accurate is because of the simplicity and ease of which the data is analyzed, simply attempting to find a line that can predict the target. kNN regression found a better correlation but was still low and had an unimpressive mse. Tree faired the worst as it did not have enough variables that were correlated enough to properly guess the outcome, so it hinged its assumption on two variables meaning its correlation and rmse are both very poor. Overall my data set was poor and in the future I need to find one that has higher correlation so that the algorithms can run more smoothly.
+
