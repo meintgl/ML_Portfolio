@@ -64,3 +64,5 @@ You can look at the [code here](https://github.com/meintgl/ML_Portfolio/blob/mai
 Notebook 4 deals with dimensionality reduction
 
 You can look at the [code here](https://github.com/meintgl/ML_Portfolio/blob/main/Searching%20by%20Similarity/Dimensionality_Reduction.Rmd) and read the [PDF Document here](https://github.com/meintgl/ML_Portfolio/blob/main/Searching%20by%20Similarity/Dimensionality_Reduction.pdf).
+
+The analysis for all methods used can be found [here](https://github.com/meintgl/ML_Portfolio/blob/main/Searching%20by%20Similarity/Searching%20for%20Similarity.pdf).
