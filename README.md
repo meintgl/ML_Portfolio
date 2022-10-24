@@ -66,3 +66,21 @@ Notebook 4 deals with dimensionality reduction
 You can look at the [code here](https://github.com/meintgl/ML_Portfolio/blob/main/Searching%20by%20Similarity/Dimensionality_Reduction.Rmd) and read the [PDF Document here](https://github.com/meintgl/ML_Portfolio/blob/main/Searching%20by%20Similarity/Dimensionality_Reduction.pdf).
 
 The analysis for all methods used can be found [here](https://github.com/meintgl/ML_Portfolio/blob/main/Searching%20by%20Similarity/Searching%20for%20Similarity.pdf).
+
+## Kernel and Ensemble
+
+This project implements three notebooks to showcase Support Vector Machines (SVM) and ensemble methods for classification.
+
+Notebook 1 deals with SVM Regression with the diamonds dataset. It explores linear, polynomial, and radial kernels within SVM.
+
+You can look at the [code here](https://github.com/meintgl/ML_Portfolio/blob/main/Kernel%20and%20Ensemble/SVM_Regression.Rmd) and read the [PDF Document here](https://github.com/meintgl/ML_Portfolio/blob/main/Kernel%20and%20Ensemble/SVM_Regression.pdf).
+
+Notebook 2 deals with SVM classification with the credit card fraud dataset. It explores linear, polynomial, and radial kernels within SVM.
+
+You can look at the [code here](https://github.com/meintgl/ML_Portfolio/blob/main/Kernel%20and%20Ensemble/svm_classification.Rmd) and read the [PDF Document here](https://github.com/meintgl/ML_Portfolio/blob/main/Kernel%20and%20Ensemble/svm_classification.pdf).
+
+Notebook 3 deals with ensemble methods with the same dataset as Notebook 2. The ensemble methods used were Decision Trees, XGBoost, Random Forest, and Super.
+
+You can look at the [code here](https://github.com/meintgl/ML_Portfolio/blob/main/Kernel%20and%20Ensemble/ensemble.Rmd) and read the [PDF Document here](https://github.com/meintgl/ML_Portfolio/blob/main/Kernel%20and%20Ensemble/ensemble.pdf).
+
+The analysis for all methods used can be found [here](https://github.com/meintgl/ML_Portfolio/blob/main/Kernel%20and%20Ensemble/SVM%20and%20Ensemble%20Analysis.pdf).
