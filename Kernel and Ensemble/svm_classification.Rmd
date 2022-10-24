@@ -1,0 +1,277 @@
+---
+title: "SVM Classification"
+author: "Meinhard Capucao, Khang Thai"
+utput:
+  pdf_document: default
+  html_document:
+    df_print: paged
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+editor_options:
+  chunk_output_type: inline
+---
+
+### Introduction
+
+
+In this project, we want to see if we can classify credit card fraud based on 28 numeric input variables. We will use SVM regression, which works by mapping data to a high dimensional feature space then categorizing them through separators drawn as a hyperplane. The important column here is the **'class'** column. If the class is 1, the credit card transaction is detected as fraud.
+
+The dataset contains only numerical input variables because of confidentiality issues. The only features not transformed are 'Time' and 'Amount'.
+
+### Installing Packages and Reading Data
+
+First, we are going to install the necessary libraries and packages. Then, we will put the credit card data into a dataframe named 'creditcard'.
+
+
+```{r}
+install.packages("tidyverse",repos = "http://cran.us.r-project.org")
+install.packages("ggplot2",repos = "http://cran.us.r-project.org")
+install.packages("corrr",repos = "http://cran.us.r-project.org")
+install.packages("e1071",repos = "http://cran.us.r-project.org")
+library(e1071)
+library(corrr)
+library(tidyverse)
+library(ggplot2)
+creditcard <- read_csv("creditcard.csv")
+```
+
+### Data Exploration
+
+Let's explore the data. We can see that we have V1 to V28 as a double as our quantitative variables. Time and amount are also doubles, but have different ranges. We can explore them momentarily. Next, we look if there is any NA values in our data. 
+
+```{r}
+str(creditcard)
+head(creditcard)
+sum(is.na(creditcard))
+```
+
+Let's check out the summary for time and amount for all 999k transactions...
+
+```{r}
+summary(creditcard$Time)
+summary(creditcard$Amount)
+```
+
+It turns out the average time is about 94k, which is reasonable. The time falls within a pretty even distribution. However, the average creidt card amount is 88 euros (as this is a european dataset), with the median 22. This is reasonable as most purchases aren't expected to be large values. However, there are some transactions that are extremely large, notably, one that is over 25k euros...
+
+
+First, we should plot amount spent vs. time. Our intuition tells us that extremely large transactions are most likely frauds, so let's see that in action.
+
+```{r}
+ggplot(creditcard) + geom_point(aes(x = creditcard$Amount, y = creditcard$Class, colour = creditcard$Class > 0)) +
+  scale_colour_manual(name = 'Class = 1', values = setNames(c('red','green'),c(T, F))) +
+  xlab('Amount') + ylab('Class')
+```
+...Never mind. All of the fraudulent transactions are less than 5000 euros. This means that the other 28 variables are probably the ones influencing whether or not a credit card transaction is fraudulent. Before exploring the other variable: including a graph with all 30 variables (28 encrypted ones, and the amount and time, uh oh...), let's explore some graphs for the amount and time!
+
+**Histogram**
+
+The time is distributed pretty evenly... The credit card amount is not.
+
+
+```{r}
+par(mfrow=c(1,2))
+ggplot(creditcard, aes(x=creditcard$Time)) + geom_histogram(fill="cornsilk3")
+ggplot(creditcard, aes(x=creditcard$Amount)) + geom_histogram(fill="cornsilk2")
+
+```
+
+**Count**
+
+It is interesting to note there are only 492 credit card frauds... What indicates that they are fraudulent?
+
+```{r}
+par(mfrow=c(1,2))
+ggplot(creditcard, aes(x=creditcard$Class)) + geom_bar(fill="cornflowerblue")
+sum(creditcard$Class == 0)
+sum(creditcard$Class == 1)
+```
+
+Here we make a data frame that only contains credit frauds. Then, we order it by the colmeans since we know that they are mostly normalized. It seems that V3, v14, and V17 have the lowest mean, while V8, V19, and V21 have the highest (disregarding class and time).
+
+
+```{r}
+creditfraud <- subset(creditcard, (creditcard$Class == 1))
+(creditfraud <- creditfraud[,order(colMeans(creditfraud))])
+colMeans(creditfraud)
+
+```
+
+**Correlation**
+
+Let's check the correlation for each of the variables (all 30). Should be fun!
+
+```{r}
+cor(creditcard[-1], creditcard$Class)
+```
+The correlation is not that high for many of them. V17 and V14 have the closest negative correlation.
+
+Now data exploration is done, let's get started with train/test data splits!
+
+### Train / Test Split
+
+Lets split our data into 75% train and 25% test. We need to use 10k data points only since it would take too long for this dataset to load all of it. We use the sample function to randomize. Also, we add all of the fraud data points since we need to make sure there is fraudulent data. It is very important to scale the data (not including the class) to make sure the data is uniform and can be put into one dimension.
+
+We can see that after scaling, our shuffled data has all rows as numeric except the last one, which is class. It is important to write this as a factor.
+
+```{r}
+random= creditcard[sample(1:nrow(creditcard)), ]
+shuffled_data <- (random[, 0:31])
+shuffled_data[c(1,30)] <- scale(shuffled_data[c(1, 30)])
+shuffled_data$Class <- factor(shuffled_data$Class)
+
+str(shuffled_data)
+set.seed(1234)
+i <- sample(1:nrow(shuffled_data), 0.75*nrow(shuffled_data), replace = FALSE)
+train <- shuffled_data[i,]
+test <- shuffled_data[-i,]
+```
+
+
+
+```{r}
+set.seed(1234)
+creditcard2 <- shuffled_data[1:10000, ]
+fraud <- subset(creditcard, (creditcard$Class == 1))
+fraud[c(1,30)] <- scale(fraud[c(1, 30)])
+creditcard2 <- rbind(creditcard2, fraud)
+
+i <- sample(1:nrow(creditcard2), 0.75*nrow(creditcard2), replace = FALSE)
+train2 <- creditcard2[i,]
+test2 <- creditcard2[-i,]
+
+```
+
+
+### SVM Function
+
+```{r}
+svm1 <- svm(Class~., data = train, kernel = "linear", cost=10, scale=TRUE)
+summary(svm1)
+```
+
+### Prediction
+
+The accuracy for our linear model is 99% to predict class. Very impressive! Next, let's test for optimal tuning, to see if different costs will benefit our model. We will test for cost 0.001, 0.01, 0.1, 1, 5, 10, or 100...
+
+```{r}
+set.seed(1234)
+class <- predict(svm1, newdata=test)
+test = as.data.frame(test)
+table(class, test$Class)
+mean(class==test$Class)
+
+```
+
+### Tuning
+
+```{r}
+tune_svm1 <- tune(svm, Class~., data=test2, kernel = "linear", ranges = list(cost=c(0.001, 0.01, 0.1, 1, 5, 10, 100)))
+summary(tune_svm1)
+```
+
+
+### Testing Out Different Costs
+
+The error and dispersion for our different costs are very low already. We should test the cost as 0.01 and 100 to test both ends of the spectrum!
+
+
+**Cost = 0.01**
+
+```{r}
+svm2cost <- svm(Class~., data = train, kernel = "linear", cost=0.001, scale=TRUE)
+summary(svm2cost)
+```
+
+```{r}
+set.seed(1234)
+class <- predict(svm2cost, newdata=test)
+test = as.data.frame(test)
+table(class, test$Class)
+mean(class==test$Class)
+
+```
+
+**Cost = 100**
+
+```{r}
+svm3cost <- svm(Class~., data = train2, kernel = "linear", cost=100, scale=TRUE)
+summary(svm3cost)
+```
+
+```{r}
+set.seed(1234)
+class <- predict(svm3cost, newdata=test)
+test = as.data.frame(test)
+table(class, test$Class)
+mean(class==test$Class)
+
+```
+
+Although all of these have high accuracy already, it seems that the lowest cost linear SVM model did the best.
+
+A low cost means samples inside the margins are penalized less compared to higher cost. To reduce overfitting, a lower cost is ideal, and although some data points will intentionally enter the margin our algorithm won't overfit as much. It was able to predict over 50% of credit card frauds, whiich is impressive just given some variables.
+
+
+### Polynomial Kernel
+
+Polynomial kernels is less time consuming than radial kernels, and is similar to linear kernels. It is expected that it will give less accuracy than radial kernels or Gaussian kernels, but let us see. We can assume that because of the very high accuracy of the linear kernels, the data was linearly separable, and it should work pretty similarly.
+
+**10 cost polynomial** 
+
+```{r}
+svmpoly <- svm(Class~., data = train2, kernel = "polynomial", cost = 10, scale = TRUE)
+summary(svmpoly)
+```
+
+```{r}
+pred <- predict(svmpoly, newdata=test)
+test = as.data.frame(test)
+table(class, test$Class)
+mean(class==test$Class)
+```
+
+**0.001 cost polynomial** 
+
+```{r}
+svmpoly2<- svm(Class~., data = train2, kernel = "polynomial", cost = 0.001, scale = TRUE)
+summary(svmpoly2)
+```
+
+```{r}
+pred <- predict(svmpoly2, newdata=test)
+test = as.data.frame(test)
+table(class, test$Class)
+mean(class==test$Class)
+```
+Interesting. The accuracy is still really good, but the same as our linear kernel 10 cost. Lastly, let's move on to experimenting with radial kernels.
+
+
+### Radial kernel
+
+RBF, or radial kernels are generalized forms of kernelization. It is similar to the Gaussian distribution. The gamma parameter is the inverse of standard deviation, so smaller gammas means large variance from the Gaussian function.
+
+```{r}
+svmradial <- svm(Class~., data = train2, kernel = "radial", cost = 10,gamma = 1, scale = TRUE)
+summary(svmradial)
+```
+WHOA. 6950 support vectors... The radial kernels must have seen something. It is important to note that this algorithm took the longest as well, so we will play around with only the radial parameter.
+
+
+```{r}
+pred <- predict(svmradial, newdata=test)
+test = as.data.frame(test)
+table(class, test$Class)
+mean(class==test$Class)
+```
+Turns out it's pretty much the same as to the other two. Therefore, the algorithm we will use is the linear kernel, 
+
+### Analysis
+
+```{r}
+svm2 <- svm(Class~., data = train2, kernel = "polynomial", cost = 10, scale = TRUE)
+summary(svm1)
+```
+

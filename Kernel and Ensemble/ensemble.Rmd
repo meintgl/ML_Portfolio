@@ -1,0 +1,161 @@
+---
+title: "Ensemble"
+author: "Meinhard Capucao, Khang Thai"
+utput:
+  pdf_document: default
+  html_document:
+    df_print: paged
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+editor_options:
+  chunk_output_type: inline
+---
+
+### Introduction
+
+
+In this project, we want to see if we can classify credit card fraud based on 28 numeric input variables. The important column here is the **'class'** column. If the class is 1, the credit card transaction is detected as fraud.
+
+The dataset contains only numerical input variables because of confidentiality issues. The only features not transformed are 'Time' and 'Amount'.
+
+Here, we will use different ensemble techniques. First, we will use decision tree as a baseline. We can keep the training/test data split from the last notebook.
+
+### Installing Packages and Reading Data
+
+First, we are going to install the necessary libraries and packages. Then, we will put the credit card data into a dataframe named 'creditcard'.
+
+
+
+```{r}
+install.packages("tidyverse",repos = "http://cran.us.r-project.org")
+install.packages("corrr",repos = "http://cran.us.r-project.org")
+install.packages("e1071",repos = "http://cran.us.r-project.org")
+install.packages("rpart",repos = "http://cran.us.r-project.org")
+install.packages("tree",repos = "http://cran.us.r-project.org")
+install.packages("randomForest",repos = "http://cran.us.r-project.org")
+install.packages("xgboost",repos = "http://cran.us.r-project.org")
+install.packages("SuperLearner",repos = "http://cran.us.r-project.org")
+library(SuperLearner)
+library(randomForest)
+library(rpart)
+library(e1071)
+library(corrr)
+library(tidyverse)
+library(tree)
+library(xgboost)
+creditcard <- read_csv("creditcard.csv")
+```
+
+### Train / Test Split
+
+Lets split our data into 75% train and 25% test. We need to use 10k data points only since it would take too long for this dataset to load all of it. We use the sample function to randomize. Also, we add all of the fraud data points since we need to make sure there is fraudulent data. It is very important to scale the data (not including the class) to make sure the data is uniform and can be put into one dimension.
+
+We can see that after scaling, our shuffled data has all rows as numeric except the last one, which is class. It is important to write this as a factor.
+
+```{r}
+random= creditcard[sample(1:nrow(creditcard)), ]
+shuffled_data <- (random[, 0:31])
+shuffled_data[c(1,30)] <- scale(shuffled_data[c(1, 30)])
+shuffled_data$Class <- factor(shuffled_data$Class)
+
+str(shuffled_data)
+set.seed(1234)
+i <- sample(1:nrow(shuffled_data), 0.75*nrow(shuffled_data), replace = FALSE)
+train <- shuffled_data[i,]
+test <- shuffled_data[-i,]
+```
+
+
+
+```{r}
+set.seed(1234)
+creditcard2 <- shuffled_data[1:10000, ]
+fraud <- subset(creditcard, (creditcard$Class == 1))
+fraud[c(1,30)] <- scale(fraud[c(1, 30)])
+creditcard2 <- rbind(creditcard2, fraud)
+
+i <- sample(1:nrow(creditcard2), 0.75*nrow(creditcard2), replace = FALSE)
+train2 <- creditcard2[i,]
+test2 <- creditcard2[-i,]
+
+```
+
+
+### Decision Tree
+
+Decision trees use recursion to split input observations until the observations are uniform. 
+
+Let's use the tree package for decision trees. According to our textbook, it tends to make better trees and is just different compared to using rpart.
+
+```{r}
+tree_creditcard2 <- tree(Class~., data=creditcard2)
+tree_creditcard2
+summary(tree_creditcard2)
+```
+The fraction of the predictsns that were wrong was 40/10492, which is pretty good.
+
+
+
+```{r}
+plot(tree_creditcard2)
+text(tree_creditcard2, cex=0.75, pretty=0)
+```
+
+```{r}
+pred <- predict(tree_creditcard2, newdata = test, type = "class")
+table(pred, test$Class)
+mean(pred==test$Class)
+```
+
+We have a 99.8% accuracy for the decision tree.
+
+### Random Forest
+
+In random forests, trees are de-corellated and at each split of the tree, a random subset of predictors is selected from all the predictors and one is chosen. This approach prevents trees from chosing the same predictors in the same order. 
+
+```{r}
+set.seed(1234)
+rf <- randomForest(Class~., data=train2, importance = TRUE)
+```
+
+```{r}
+pred <- predict(rf, newdata = test, type = "response")
+table(pred, test$Class)
+mean(pred==test$Class)
+```
+
+The random forest algorithm predicted more credit card frauds than the decision tree. It had an accuracy of 0.999%, which is amazing!
+
+### XGBoost
+
+The XGBoost algorithm runs up to 10 times faster than earlier tree algorithms. It was developed by Tianqi Chen. However, for XGBoost to work, the training data needs to be converted into a numeric matrix.
+
+
+```{r}
+train_label <- ifelse(train$Class==1, 1, 0)
+train_matrix <- data.matrix(train[,])
+xgboostmodel <- xgboost(data=train_matrix, label=train_label, nrounds = 100, objective = 'binary:logistic')
+```
+
+```{r}
+test_label <- ifelse(test$Class==1, 1, 0)
+test_matrix <- data.matrix(test[,])
+
+probs <- predict(xgboostmodel,test_matrix)
+pred <- ifelse(probs>0.5, 1, 0)
+
+table(pred, test$Class)
+mean(pred==test$Class)
+```
+Wow. The accuracy for XGBoost is over 100%.
+
+### SuperLearner
+
+This isn't the most optimal method, but we could try it. We know it isn't optimal, so we move on to analysis.
+
+
+### Analysis
+
+XGBoost and Random Forest works best. This is expected because it is an optimized algorithm to run fast. Random Forest can also handle large datasets efficiently, and provides a high level of accuracy for predictions because of the emphasis for feature selection. Decision trees performed really good as well (most our algorithms had an accuracy of over 100%), but it was our baseline and isn't as optimized as the other two.
