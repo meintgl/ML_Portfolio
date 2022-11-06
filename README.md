@@ -84,3 +84,11 @@ Notebook 3 deals with ensemble methods with the same dataset as Notebook 2. The 
 You can look at the [code here](https://github.com/meintgl/ML_Portfolio/blob/main/Kernel%20and%20Ensemble/ensemble.Rmd) and read the [PDF Document here](https://github.com/meintgl/ML_Portfolio/blob/main/Kernel%20and%20Ensemble/ensemble.pdf).
 
 The analysis for all methods used can be found [here](https://github.com/meintgl/ML_Portfolio/blob/main/Kernel%20and%20Ensemble/SVM%20and%20Ensemble%20Analysis.pdf).
+
+## ML with sklearn
+
+This project uses sklearn and various packages to analyze a dataset with various automatives. Logistic regression, decision trees, and neural networks are used to predict miles per gallon, where 0 is predicted if it is below the average, and 1 is predicted if it is above average. 
+
+You can look at the [PDF here](https://github.com/meintgl/ML_Portfolio/blob/main/ML%20with%20sklearn/ML%20With%20sklearn.ipynb%20-%20Colaboratory.pdf).
+
+[Auto Dataset](https://github.com/meintgl/ML_Portfolio/blob/main/Auto.csv)
